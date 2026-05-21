@@ -3,6 +3,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from '../common/decorators/public.decorator';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
+import { VerifyDto } from './dto/verify-email.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -15,5 +16,13 @@ export class AuthController {
   @Post('register')
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto.email, dto.password);
+  }
+
+  @Public()
+  @ApiOperation({ summary: 'Verify email' })
+  @HttpCode(HttpStatus.OK)
+  @Post('verify-email')
+  async verifyEmail(@Body() dto: VerifyDto) {
+    return this.authService.verifyEmail(dto.token);
   }
 }

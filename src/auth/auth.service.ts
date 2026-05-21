@@ -38,6 +38,28 @@ export class AuthService {
     };
   }
 
+  async verifyEmail(token: string) {
+    const tokenRecord = await this.tokenRepository.findOne({
+      where: { tokenHash: token },
+    });
+    if (!tokenRecord) {
+      throw new NotFoundException('Invalid or expired verification token');
+    }
+    if (tokenRecord.isUsed || tokenRecord.expiresAt < new Date()) {
+      throw new BadRequestException('Token has already been used or expired');
+    }
+    tokenRecord.isUsed = true;
+    await this.tokenRepository.save(tokenRecord);
+
+    const user = await this.usersService.findByEmail(tokenRecord.email);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    user.isVerified = true;
+    const updatedUser = await this.usersService.updateUser(user.id, user);
+    return { message: 'Email verified successfully', user: updatedUser };
+  }
+
   async hashPassword(password: string): Promise<string> {
     const saltRounds = 10;
     return bcrypt.hash(password, saltRounds);

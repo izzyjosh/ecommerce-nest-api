@@ -29,6 +29,12 @@ export class UsersService {
     return plainToInstance(UserResponse, savedUser);
   }
 
+  async updateUser(id: string, user: Partial<User>): Promise<UserResponse> {
+    await this.userRepository.update(id, user);
+    const updatedUser = await this.userRepository.findOne({ where: { id } });
+    return plainToInstance(UserResponse, updatedUser);
+  }
+
   async generateReferralCode(): Promise<string> {
     const referralCode = randomBytes(4).toString('hex');
     const existingUser = await this.userRepository.findOne({
