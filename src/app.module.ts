@@ -14,9 +14,13 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { UsersModule } from './users/users.module';
+import { BullModule } from '@nestjs/bullmq';
+import { bullConfig } from './config/bull.config';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
+    BullModule.forRoot(bullConfig),
     ConfigModule.forRoot({
       isGlobal: true,
       load: [databaseConfig],
@@ -27,6 +31,7 @@ import { UsersModule } from './users/users.module';
     HealthModule,
     AuthModule,
     UsersModule,
+    MailModule,
   ],
   controllers: [],
   providers: [
