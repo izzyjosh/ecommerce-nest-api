@@ -1,4 +1,5 @@
 import {
+  BeforeInsert,
   Column,
   CreateDateColumn,
   Entity,
@@ -6,6 +7,7 @@ import {
   PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { v7 as uuidv7 } from 'uuid';
 
 export enum UserRole {
   USER = 'user',
@@ -53,4 +55,9 @@ export class User {
 
   @Column({ type: 'timestamp', name: 'last_login', nullable: true })
   lastLogin!: Date;
+
+  @BeforeInsert()
+  generateId() {
+    this.id = uuidv7();
+  }
 }

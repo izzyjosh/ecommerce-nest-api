@@ -26,7 +26,7 @@ export const env = createEnv({
     JWT_EXPIRES_IN: z.string(),
     REDIS_URL: z.string().url(),
     MAIL_HOST: z.string(),
-    MAIL_PORT: z.number(),
+    MAIL_PORT: z.coerce.number(),
     MAIL_USER: z.string(),
     MAIL_PASS: z.string(),
     MAIL_FROM: z.string(),

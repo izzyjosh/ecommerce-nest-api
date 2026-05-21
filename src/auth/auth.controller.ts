@@ -13,5 +13,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Register a new user' })
   @HttpCode(HttpStatus.CREATED)
   @Post('register')
-  register(@Body() dto: RegisterDto) {}
+  register(@Body() dto: RegisterDto) {
+    return this.authService.register(dto.email, dto.password);
+  }
 }
