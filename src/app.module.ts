@@ -1,0 +1,67 @@
+import {
+  Module,
+  ValidationPipe,
+  UnprocessableEntityException,
+} from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { databaseConfig } from './config/database.config';
+import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { HealthModule } from './health/health.module';
+import { LoggerInterceptor } from './common/interceptors/logger.interceptor';
+import { APP_INTERCEPTOR, APP_FILTER, APP_PIPE, APP_GUARD } from '@nestjs/core';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { AuthModule } from './auth/auth.module';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { UsersModule } from './users/users.module';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [databaseConfig],
+    }),
+    TypeOrmModule.forRootAsync({
+      useFactory: (): TypeOrmModuleOptions => databaseConfig(),
+    }),
+    HealthModule,
+    AuthModule,
+    UsersModule,
+  ],
+  controllers: [],
+  providers: [
+    {
+      provide: APP_PIPE,
+      useValue: new ValidationPipe({
+        whitelist: true,
+        transform: true,
+        forbidNonWhitelisted: true,
+        transformOptions: { enableImplicitConversion: false },
+        exceptionFactory: (errors) => {
+          const formatted = errors.map((e) => ({
+            field: e.property,
+            error: Object.values(e.constraints ?? {}).join(', '),
+          }));
+          return new UnprocessableEntityException(formatted);
+        },
+      }),
+    },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggerInterceptor,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TransformInterceptor,
+    },
+  ],
+})
+export class AppModule {}
