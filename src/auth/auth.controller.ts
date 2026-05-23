@@ -23,6 +23,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('verify-email')
   async verifyEmail(@Body() dto: VerifyDto) {
-    return this.authService.verifyEmail(dto.token);
+    const result = await this.authService.verifyEmail(dto.token);
+    return result;
   }
 }

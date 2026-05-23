@@ -7,6 +7,10 @@ import { MailService } from '../mail/mail.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Token } from './entities/token.entity';
+import { User } from '../users/entities/user.entity';
+import { JwtService } from '@nestjs/jwt';
+import { env } from '../config/env';
+import { StringValue } from 'ms';
 
 @Injectable()
 export class AuthService {
@@ -17,6 +21,7 @@ export class AuthService {
     private readonly mailService: MailService,
     @InjectRepository(Token)
     private readonly tokenRepository: Repository<Token>,
+    private readonly jwtService: JwtService,
   ) {}
 
   async register(email: string, password: string) {
@@ -25,10 +30,9 @@ export class AuthService {
       throw new BadRequestException('User with this email already exists');
     }
     const hashedPassword = await this.hashPassword(password);
+    const token = await this.generateToken();
 
     const newUser = await this.usersService.createUser(email, hashedPassword);
-
-    const token = await this.generateToken();
     await this.createToken(newUser.id, email, token);
 
     await this.mailService.queueVerificationEmail(email, token);
@@ -57,7 +61,22 @@ export class AuthService {
     }
     user.isVerified = true;
     const updatedUser = await this.usersService.updateUser(user.id, user);
-    return { message: 'Email verified successfully', user: updatedUser };
+
+    const { accessToken, refreshToken } = await this.signToken(user);
+    const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+
+    await this.createToken(
+      user.id,
+      user.email,
+      refreshTokenHash,
+      7 * 24 * 60 * 60 * 1000,
+    );
+
+    return {
+      message: 'Email verified successfully',
+      user: updatedUser,
+      tokens: { accessToken, refreshToken },
+    };
   }
 
   async hashPassword(password: string): Promise<string> {
@@ -82,13 +101,33 @@ export class AuthService {
     userId: string,
     email: string,
     token: string,
+    expiresIn: number = 24 * 60 * 60 * 1000, // 24 hours
   ): Promise<Token> {
     const tokenInstance = this.tokenRepository.create({
       userId,
       email,
       tokenHash: token,
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      expiresAt: new Date(Date.now() + expiresIn),
     });
     return this.tokenRepository.save(tokenInstance);
+  }
+
+  async signToken(user: User): Promise<Record<string, string>> {
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    };
+
+    const accessToken = await this.jwtService.signAsync(payload, {
+      secret: env.JWT_ACCESS_SECRET,
+      expiresIn: env.JWT_ACCESS_EXPIRES as StringValue,
+    });
+
+    const refreshToken = await this.jwtService.signAsync(payload, {
+      secret: env.JWT_REFRESH_SECRET,
+      expiresIn: env.JWT_REFRESH_EXPIRES as StringValue,
+    });
+    return { accessToken, refreshToken };
   }
 }

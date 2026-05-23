@@ -15,8 +15,8 @@ import { Token } from './entities/token.entity';
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({
-      secret: env.JWT_SECRET,
-      signOptions: { expiresIn: env.JWT_EXPIRES_IN as StringValue },
+      secret: env.JWT_ACCESS_SECRET,
+      signOptions: { expiresIn: env.JWT_ACCESS_EXPIRES as StringValue },
     }),
     UsersModule,
     MailModule,
